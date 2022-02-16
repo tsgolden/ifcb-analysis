@@ -6,7 +6,7 @@ from numpy.fft import fft2, fftshift
 
 from scipy.ndimage.interpolation import zoom
 
-from skimage.draw import circle, polygon
+from skimage.draw import polygon
 
 # original MATLAB implementation: Kaccie Li, 2005
 # Python port: Joe Futrelle, 2016
@@ -47,7 +47,7 @@ def kaccie_ring(i,dim=301,n_rings=_N_RINGS):
     out = np.zeros((dim,dim),dtype=np.bool)
     out[(r > inner_rad) & (r < outer_rad)] = 1
     return out
-    
+
 @lru_cache()
 def kaccie_wedge(i,dim=_DIM,n_wedges=_N_WEDGES):
     # wedge masks are adjacent, equal-sized "pie slices" of the
@@ -75,7 +75,7 @@ def kaccie_filter_masks(dim=_DIM):
     R = np.sqrt(X**2 + Y**2)
     filt = R > 15*df
     return np.invert(filt), filt
-    
+
 def ring_wedge(image,dim=_DIM):
     # perform fft and scale its intensities to dim x dim
     amp_trans = fftshift(fft2(image))
@@ -107,4 +107,4 @@ def ring_wedge(image,dim=_DIM):
     rings = ring_vector / pwr_integral
     # return all features
     return pwr_integral, pwr_ratio, wedges, rings
-    
+

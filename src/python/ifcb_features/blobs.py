@@ -4,7 +4,6 @@ from scipy.ndimage import measurements
 
 from skimage.measure import regionprops
 from skimage.transform import rotate
-from skimage.util import pad
 from skimage.morphology import binary_closing, binary_dilation
 
 from .morphology import SE2, SE3, EIGHT, bwmorph_thin
@@ -14,7 +13,7 @@ def label_blobs(B):
     labeled, _ = measurements.label(B,structure=EIGHT)
     objects = measurements.find_objects(labeled)
     return labeled, objects
-    
+
 def find_blobs(B):
     """find and return all blobs in the image, using
     eight-connectivity. returns a labeled image, the
@@ -48,7 +47,7 @@ def rotate_blob(blob, theta):
     blob = rotate(blob,-1*theta,order=0).astype(np.bool)
     # note that v2 does morphological post-processing and v3 does not
     return blob
-    
+
 def blob_shape(b0):
     h, w = b0.shape
     blr = np.fliplr(b0)
@@ -61,6 +60,6 @@ def blob_shape(b0):
     y1 = h - np.argmax(np.sum(bud,axis=1)>0)
     h = int((y1-y0) + 0.5)
     w = int((x1-x0) + 0.5)
-    
+
     return h,w
 
