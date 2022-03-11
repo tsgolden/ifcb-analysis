@@ -1,16 +1,17 @@
 import numpy as np
-
-from skimage import img_as_float
 from scipy.ndimage.morphology import binary_fill_holes
-from skimage.morphology import binary_closing, binary_dilation, remove_small_objects
+from skimage import img_as_float
+from skimage.filters.thresholding import apply_hysteresis_threshold
+from skimage.morphology import (binary_closing, binary_dilation,
+                                remove_small_objects)
 
 try:
     import skimage.filters as imfilters
 except ImportError:
     import skimage.filter as imfilters
 
+from .morphology import SE2, SE3, bwmorph_thin, hysthresh
 from .phasecong import phasecong_Mm
-from .morphology import SE2, SE3, hysthresh, bwmorph_thin
 
 # parameters
 HT_T1, HT_T2 = 0.2, 0.1
@@ -25,7 +26,8 @@ def segment_roi(roi):
     # step 1. phase congruency (edge detection)
     Mm = phasecong_Mm(roi)
     # step 2. hysteresis thresholding (of edges)
-    B = hysthresh(Mm,HT_T1,HT_T2)
+    #B = hysthresh(Mm,HT_T1,HT_T2)
+    B = apply_hysteresis_threshold(Mm, HT_T1, HT_T2)
     # step 3. trim pixels off border
     B[B[:,1]==0,0]=0
     B[B[:,-2]==0,-1]=0
@@ -47,4 +49,4 @@ def segment_roi(roi):
     B = remove_small_objects(B,BLOB_MIN+1,connectivity=2)
     # done.
     return B
-    
+
