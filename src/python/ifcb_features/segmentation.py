@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.ndimage.morphology import binary_fill_holes
+from scipy.ndimage import binary_fill_holes
 from skimage import img_as_float
 from skimage.filters.thresholding import apply_hysteresis_threshold
 from skimage.morphology import (binary_closing, binary_dilation,

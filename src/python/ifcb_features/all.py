@@ -1,30 +1,28 @@
-import numpy as np
-
-from scipy.ndimage.measurements import find_objects
-
-from skimage.measure import regionprops
-
 from functools import lru_cache
 
-from .segmentation import segment_roi
-from .blobs import find_blobs, rotate_blob, blob_shape
-from .blob_geometry import (equiv_diameter, ellipse_properties,
-                            invmoments, convex_hull, convex_hull_image,
-                            convex_hull_properties, feret_diameter,
-                            binary_symmetry, feret_diameters)
-from .morphology import find_perimeter
-from .biovolume import (distmap_volume_surface_area,
-                        sor_volume_surface_area)
-from .perimeter import perimeter_stats, hausdorff_symmetry
-from .texture import statxture, masked_pixels, texture_pixels
+import numpy as np
+from scipy.ndimage import find_objects
+from skimage.measure import regionprops
+
+from .biovolume import distmap_volume_surface_area, sor_volume_surface_area
+from .blob_geometry import (binary_symmetry, convex_hull, convex_hull_image,
+                            convex_hull_properties, ellipse_properties,
+                            equiv_diameter, feret_diameter, feret_diameters,
+                            invmoments)
+from .blobs import blob_shape, find_blobs, rotate_blob
 from .hog import image_hog
-from .ringwedge import ring_wedge, _N_RINGS, _N_WEDGES
+from .morphology import find_perimeter
+from .perimeter import hausdorff_symmetry, perimeter_stats
+from .ringwedge import _N_RINGS, _N_WEDGES, ring_wedge
+from .segmentation import segment_roi
+from .texture import masked_pixels, statxture, texture_pixels
+
 
 class BlobFeatures(object):
     def __init__(self,blob_image,roi_image):
         """roi_image should be the same size as the blob image,
         so a sub-roi"""
-        self.image = np.array(blob_image).astype(np.bool)
+        self.image = np.array(blob_image).astype(bool)
         self.roi_image = roi_image
     @property
     def shape(self):
@@ -286,7 +284,7 @@ class BlobFeatures(object):
     @property
     def bflip(self):
         return self.binary_symmetry[2]
-        
+
 class RoiFeatures(object):
     def __init__(self,roi_image,blobs_image=None):
         self.image = np.array(roi_image).astype(np.uint8)
@@ -415,7 +413,7 @@ class RoiFeatures(object):
         return self.ring_wedge[3]
     @lru_cache()
     def summed_attr(self, attr):
-        return np.sum(getattr(b,attr) for b in self.blobs)
+        return np.sum([getattr(b, attr) for b in self.blobs])
     @property
     def summed_area(self):
         return self.summed_attr('area')

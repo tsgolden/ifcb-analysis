@@ -1,9 +1,9 @@
 import numpy as np
 from numpy.linalg import norm
-
-from skimage import img_as_float
 from scipy import ndimage as ndi
-from scipy.ndimage.filters import correlate
+from scipy.ndimage import correlate
+from skimage import img_as_float
+
 
 def image_hog(image):
     nwin_x = 3 # set here the number of HOG windows per bound box
@@ -14,7 +14,7 @@ def image_hog(image):
     m = np.sqrt(L/2)
 
     # convert to float, retain uint8 range
-    Im = image.astype(np.float)
+    Im = image.astype(np.float64)
 
     step_x = int(np.floor(C/(nwin_x+1)))
     step_y = int(np.floor(L/(nwin_y+1)))
@@ -22,14 +22,14 @@ def image_hog(image):
     # correlate image with orthogonal gradient masks
     hx = [[-1,0,1]];
     hy = np.rot90(hx);
-    
+
     grad_xr = correlate(Im,hx,mode='constant')
     grad_yu = correlate(Im,hy,mode='constant')
-    
+
     # compute orientation vectors
     angles = np.arctan2(grad_yu,grad_xr)
     magnit = np.sqrt(grad_yu**2 + grad_xr**2)
-    
+
     # compute histogram
     cont = 0
     ang_high = np.linspace(0-np.pi+2*np.pi/B, np.pi, B)
@@ -52,6 +52,6 @@ def image_hog(image):
             H2 /= (norm(H2)+0.01)
             H[cont,:] = H2
             cont += 1
-    
+
     # flatten results into row vector of size B * nwin_x * nwin_y
     return H.ravel()

@@ -21,7 +21,7 @@ class TestFeatures:
         values = (roi,) + values
         values = [(value,) for value in values]
         return pd.DataFrame(
-            {c: v for c, v in zip(cols, values) },
+            {c: v for c, v in zip(cols, values)},
             columns=cols
         )
 
