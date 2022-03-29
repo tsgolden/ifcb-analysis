@@ -4,8 +4,9 @@ from pathlib import Path
 import ifcb
 import numpy as np
 import pandas as pd
-from ifcb.data.imageio import format_image
-from ifcb_features import compute_features
+import tensorflow as tf
+from ifcb_features import classify, compute_features
+from PIL import Image
 
 
 class TestFeatures:
@@ -14,6 +15,8 @@ class TestFeatures:
     adc_file = basedir / 'D20141117T234033_IFCB102.adc'
     hdf_file = basedir / 'D20141117T234033_IFCB102.hdf'
     roi_file = basedir / 'D20141117T234033_IFCB102.roi'
+    model_path = basedir / 'scwharf-ifcb-xception'
+    classes_path = basedir / 'scwharf-class-names.txt'
 
     def _pack_df(self, features, roi):
         cols, values = zip(*features)
@@ -25,7 +28,7 @@ class TestFeatures:
             columns=cols
         )
 
-    def test_process_bin(self):
+    def test_process_image(self):
         # Give ADC file
         bin = ifcb.open_raw(self.adc_file)
         PID = 'D20141117T234033_IFCB102'
@@ -55,3 +58,20 @@ class TestFeatures:
         assert len(features) == N_FEATURES
         # Adds ROI number to features, so n + 1 features
         assert df.shape == (1, N_FEATURES+1)
+
+    def test_classify(self):
+        bin = ifcb.open_raw(self.adc_file)
+        ROI = 2
+
+        model_config = classify.KerasModelConfig(self.model_path, self.classes_path)
+        img = (Image
+            .fromarray(bin.images[ROI])
+            .convert('RGB')
+            .resize(model_config.img_dims, Image.BILINEAR)
+        )
+        # expecting (1, 299, 299, 3)
+        input_array = tf.keras.preprocessing.image.img_to_array(img)
+        img = input_array[np.newaxis, :]/255
+
+        predictions = classify.predict(model_config, img)
+        assert np.argmax(predictions) == 29
