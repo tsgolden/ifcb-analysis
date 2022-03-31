@@ -16,6 +16,9 @@ from PIL import Image
 
 def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfig):
     logging.info(f'Processing {file}, saving results to {outdir}')
+    if not outdir.exists:
+        outdir.mkdir(parents=True)
+
     bin = ifcb.open_raw(file)
 
     blobs_fname = outdir / f'{bin.lid}_blobs.zip'
