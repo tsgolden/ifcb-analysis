@@ -1,0 +1,8 @@
+numpy >= 1.16
+pandas
+phasepack
+pyfftw >= 0.13.0
+scikit-image
+scipy >=1.4
+tensorflow
+ifcb @ git+https://github.com/joefutrelle/pyifcb.git

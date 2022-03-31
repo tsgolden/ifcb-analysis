@@ -1,6 +1,0 @@
-pandas
-scipy
-scikit-image
-phasepack
-tensorflow
-#pyfftw
