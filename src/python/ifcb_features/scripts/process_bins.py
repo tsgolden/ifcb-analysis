@@ -5,10 +5,10 @@ import os
 from pathlib import Path
 from zipfile import ZipFile
 
+import click
 import ifcb
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from ifcb.data.imageio import format_image
 from ifcb_features import classify, compute_features
 from PIL import Image
@@ -18,11 +18,11 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
     logging.info(f'Processing {file}, saving results to {outdir}')
     bin = ifcb.open_raw(file)
 
-    blobs_fname = outdir / bin.lid + '_blobs.zip'
-    features_fname = outdir / bin.lid + '_features.csv'
-    class_fname = outdir / bin.lid + '_class_scores.csv'
+    blobs_fname = outdir / f'{bin.lid}_blobs.zip'
+    features_fname = outdir / f'{bin.lid}_features.csv'
+    class_fname = outdir / f'{bin.lid}_class_scores.csv'
 
-    features_df = pd.DataFrame()
+    features_df = None
     roi_number = None
     num_rois = len(bin.images.keys())
     image_stack = np.zeros((num_rois, model_config.img_dims[0], model_config.img_dims[1], 3), dtype=np.uint8)
@@ -44,11 +44,12 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
                 blob_zip.writestr(f'{bin.pid.with_target(roi_number)}.png', image_bytes)
 
                 # Add features row to dataframe
+                # - Copied pyifcb
                 row_df = features2df(features, roi_number)
                 if features_df is None:
                     features_df = row_df
                 else:
-                    features_df = features_df.append(row_df)
+                    features_df = pd.concat([features_df, row_df])
 
                 # Resize image and add to stack
                 pil_img = (Image
@@ -69,7 +70,7 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
 
     # Classify images and save as csv
     logging.info(f'Classifying images and saving to {class_fname}')
-    _ = classify.classify(model_config, image_stack, class_fname)
+    _ = classify.predict(model_config, image_stack, class_fname)
 
 
 def blob2bytes(blob_img: np.ndarray) -> bytes:
@@ -88,20 +89,20 @@ def features2df(features: list, roi_number: int) -> pd.DataFrame:
                         columns=cols)
 
 
-def main(input_dir: Path, output_dir: Path, model_config: ModelConfig):
+@click.command()
+@click.argument('input_dir', type=click.Path(exists=True))
+@click.argument('output_dir', type=click.Path(exists=True))
+@click.argument('model_path', type=click.Path(exists=True))
+@click.argument('class_path', type=click.Path(exists=True))
+def cli(input_dir: Path, output_dir: Path, model_path: Path, class_path: Path):
     """Process all files in input_dir and write results to output_dir."""
+    input_dir = Path(input_dir)
+    output_dir = Path(output_dir)
+
+    model_config = classify.KerasModelConfig(model_path=model_path, class_path=class_path)
     for file in input_dir.glob('*.adc'):
         process_bin(file, output_dir, model_config)
 
 
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(description='Process IFCB data.')
-    parser.add_argument('input_dir', type=Path, help='Input directory')
-    parser.add_argument('output_dir', type=Path, help='Output directory')
-    parser.add_argument('model_config', type=Path, help='Model config file')
-    parser.add_argument('class_path', type=Path, help='Class names file')
-    args = parser.parse_args()
-
-    model_config = classify.KerasModelConfig(model_path=args.model_config, class_path=args.class_path)
-    main(args.input_dir, args.output_dir, model_config)
+#if __name__ == '__main__':
+#    cli()

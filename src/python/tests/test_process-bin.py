@@ -1,11 +1,14 @@
-# Test script to extract blobs, features, classify samples, and write to disk.
+import filecmp
+import os
 from pathlib import Path
 
 import ifcb
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from click.testing import CliRunner
 from ifcb_features import classify, compute_features
+from ifcb_features.scripts.process_bins import cli
 from PIL import Image
 
 
@@ -17,6 +20,9 @@ class TestFeatures:
     roi_file = basedir / 'D20141117T234033_IFCB102.roi'
     model_path = basedir / 'scwharf-ifcb-xception'
     classes_path = basedir / 'scwharf-class-names.txt'
+    reference_blobs = basedir / 'D20141117T234033_IFCB102_blobs.zip'
+    reference_classes = basedir / 'D20141117T234033_IFCB102_class_scores.csv'
+    reference_features = basedir / 'D20141117T234033_IFCB102_features.csv'
 
     def _pack_df(self, features, roi):
         cols, values = zip(*features)
@@ -75,3 +81,20 @@ class TestFeatures:
 
         predictions = classify.predict(model_config, img)
         assert np.argmax(predictions) == 29
+
+    def test_scipt(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, [str(self.basedir), str(self.basedir), str(self.model_path), str(self.classes_path)])
+        features_file = self.basedir / 'D20141117T234033_IFCB102_features.csv'
+        classes_file = self.basedir / 'D20141117T234033_IFCB102_class_scores.csv'
+        blob_file = self.basedir / 'D20141117T234033_IFCB102_blobs.zip'
+
+        assert result.exit_code == 0
+        assert filecmp.cmp(self.reference_blobs, blob_file, shallow=True)
+        assert filecmp.cmp(self.reference_features, features_file)
+        assert filecmp.cmp(self.reference_classes, classes_file)
+
+        if result.exit_code == 0:
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_features.csv'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_class_scores.csv'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs.zip'))

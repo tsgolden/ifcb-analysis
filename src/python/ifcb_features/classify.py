@@ -36,9 +36,8 @@ def predict(model_config: KerasModelConfig, image_stack: np.ndarray, output_fnam
     predictions = model_config.model.predict(image_stack, batch_size)
     predictions_df = pd.DataFrame(
         predictions,
-        columns=model_config.class_names
+        columns=model_config.class_names.values()
     )
-
     if output_fname is not None:
         logging.info(f'Classifying images and saving to {output_fname}')
         predictions_df.to_csv(output_fname, index=False)
