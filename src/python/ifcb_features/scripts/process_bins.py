@@ -68,12 +68,15 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
         raise e
 
     # Save features dataframe
-    logging.info(f'Saving features to {features_fname}')
-    features_df.to_csv(features_fname, index=False, float_format='%.6f')
+    if features_df is not None:
+        logging.info(f'Saving features to {features_fname}')
+        features_df.to_csv(features_fname, index=False, float_format='%.6f')
+        # Classify images and save as csv
+        logging.info(f'Classifying images and saving to {class_fname}')
+        _ = classify.predict(model_config, image_stack, class_fname)
+    else:
+        logging.info(f'No features found in {file}. Skipping classification.')
 
-    # Classify images and save as csv
-    logging.info(f'Classifying images and saving to {class_fname}')
-    _ = classify.predict(model_config, image_stack, class_fname)
 
 
 def blob2bytes(blob_img: np.ndarray) -> bytes:
