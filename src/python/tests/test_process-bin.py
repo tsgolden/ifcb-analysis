@@ -77,7 +77,8 @@ class TestFeatures:
         )
         # expecting (1, 299, 299, 3)
         input_array = tf.keras.preprocessing.image.img_to_array(img)
-        img = input_array[np.newaxis, :]/255
+        # predict will not normalize the image, this test model used 255.
+        img = input_array[np.newaxis, :] / 255
 
         predictions = classify.predict(model_config, img)
         assert np.argmax(predictions) == 29

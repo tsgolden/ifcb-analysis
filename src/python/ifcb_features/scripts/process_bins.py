@@ -54,13 +54,14 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
                 else:
                     features_df = pd.concat([features_df, row_df])
 
-                # Resize image and add to stack
+                # Resize image, normalized, and add to stack
                 pil_img = (Image
                     .fromarray(image)
                     .convert('RGB')
                     .resize(model_config.img_dims, Image.BILINEAR)
                 )
-                image_stack[ix, :] = np.array(pil_img)
+                img = np.array(pil_img) / model_config.norm
+                image_stack[ix, :] = img
     except Exception as e:
         logging.error(f'Failed to process {file} for ROI {roi_number}')
         if os.path.exists(blobs_fname):
