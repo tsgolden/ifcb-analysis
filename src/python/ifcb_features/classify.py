@@ -14,7 +14,7 @@ import tensorflow as tf
 class KerasModelConfig:
     model_path: Union[Path, str]
     class_path: Union[Path, str]
-    model_id: str
+    model_id: str = 'unknown'
     model:  tf.keras.Model = field(init=False)
     class_names: dict = field(init=False)
     img_dims: Tuple[int, int] = (299, 299)
