@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Tuple, Union
 
+import h5py as h5
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -13,6 +14,7 @@ import tensorflow as tf
 class KerasModelConfig:
     model_path: Union[Path, str]
     class_path: Union[Path, str]
+    model_id: str
     model:  tf.keras.Model = field(init=False)
     class_names: dict = field(init=False)
     img_dims: Tuple[int, int] = (299, 299)
@@ -31,15 +33,12 @@ class KerasModelConfig:
         return {ix: name for ix, name in enumerate(classes[0].split(','))}
 
 
-def predict(model_config: KerasModelConfig, image_stack: np.ndarray, output_fname=None, batch_size=64) -> pd.DataFrame:
+def predict(model_config: KerasModelConfig, image_stack: np.ndarray, batch_size=64) -> pd.DataFrame:
     # Classify images and save as csv
     predictions = model_config.model.predict(image_stack, batch_size)
     predictions_df = pd.DataFrame(
         predictions,
         columns=model_config.class_names.values()
     )
-    if output_fname is not None:
-        logging.info(f'Classifying images and saving to {output_fname}')
-        predictions_df.to_csv(output_fname, index=False)
 
-    return predictions
+    return predictions_df

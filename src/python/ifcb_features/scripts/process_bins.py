@@ -6,6 +6,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import click
+import h5py as h5
 import ifcb
 import numpy as np
 import pandas as pd
@@ -21,9 +22,9 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
 
     bin = ifcb.open_raw(file)
 
-    blobs_fname = outdir / f'{bin.lid}_blobs.zip'
-    features_fname = outdir / f'{bin.lid}_features.csv'
-    class_fname = outdir / f'{bin.lid}_class_scores.csv'
+    blobs_fname = outdir / f'{bin.lid}_blobs_v2.zip'
+    features_fname = outdir / f'{bin.lid}_fea_v2.csv'
+    class_fname = outdir / f'{bin.lid}_class_v3.h5'
 
     features_df = None
     roi_number = None
@@ -69,15 +70,19 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
         raise e
 
     # Save features dataframe
+    # - Empty features indicates no samples, so remaining steps are skipped
     if features_df is not None:
         logging.info(f'Saving features to {features_fname}')
         features_df.to_csv(features_fname, index=False, float_format='%.6f')
-        # Classify images and save as csv
+
+        # Classify images
         logging.info(f'Classifying images and saving to {class_fname}')
-        _ = classify.predict(model_config, image_stack, class_fname)
+        predictions_df = classify.predict(model_config, image_stack)
+
+        # Save predictions to h5
+        predictions2h5(model_config, class_fname, predictions_df, bin.lid, features_df)
     else:
         logging.info(f'No features found in {file}. Skipping classification.')
-
 
 
 def blob2bytes(blob_img: np.ndarray) -> bytes:
@@ -96,17 +101,36 @@ def features2df(features: list, roi_number: int) -> pd.DataFrame:
                         columns=cols)
 
 
+def predictions2h5(model_config: classify.KerasModelConfig, outfile: Path, predictions_df: pd.DataFrame, bin_lid: str, features: pd.DataFrame):
+    """Save classified predictions to h5 file."""
+
+    with h5.File(outfile, 'w') as f:
+        meta = f.create_dataset('metadata', data=h5.Empty('f'))
+        meta.attrs['version'] = 'v3'
+        meta.attrs['model_id'] = model_config.model_id
+        # DYYYYMMDDTHHMMSS_IFCBXXX
+        meta.attrs['timestamp'] = bin_lid.split('_')[0][1:]
+        meta.attrs['bin_id'] = bin_lid
+#       I think these are just indices
+#        f.create_dataset('output_classes', data=results['output_classes'], compression='gzip', dtype='float16')
+        f.create_dataset('output_scores', data=predictions_df.values, compression='gzip', dtype='float16')
+#        f.create_dataset('class_labels', data=np.string_(results['class_labels']), compression='gzip', dtype=h5.string_dtype())
+        f.create_dataset('class_labels', data=predictions_df.columns, compression='gzip', dtype=h5.string_dtype())
+        f.create_dataset('roi_numbers', data=features['roiNumber'], compression='gzip', dtype='uint16')
+
+
 @click.command()
 @click.argument('input_dir', type=click.Path(exists=True))
 @click.argument('output_dir', type=click.Path(exists=True))
 @click.argument('model_path', type=click.Path(exists=True))
 @click.argument('class_path', type=click.Path(exists=True))
-def cli(input_dir: Path, output_dir: Path, model_path: Path, class_path: Path):
+@click.argument('model_id', type=str)
+def cli(input_dir: Path, output_dir: Path, model_path: Path, class_path: Path, model_id: str):
     """Process all files in input_dir and write results to output_dir."""
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
 
-    model_config = classify.KerasModelConfig(model_path=model_path, class_path=class_path)
+    model_config = classify.KerasModelConfig(model_path=model_path, class_path=class_path, model_id=model_id)
     for file in input_dir.glob('*.adc'):
         process_bin(file, output_dir, model_config)
 

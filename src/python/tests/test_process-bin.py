@@ -20,9 +20,9 @@ class TestFeatures:
     roi_file = basedir / 'D20141117T234033_IFCB102.roi'
     model_path = basedir / 'scwharf-ifcb-xception'
     classes_path = basedir / 'scwharf-class-names.txt'
-    reference_blobs = basedir / 'D20141117T234033_IFCB102_blobs.zip'
-    reference_classes = basedir / 'D20141117T234033_IFCB102_class_scores.csv'
-    reference_features = basedir / 'D20141117T234033_IFCB102_features.csv'
+    reference_blobs = basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'
+    reference_classes = basedir / 'D20141117T234033_IFCB102_class_v3.h5'
+    reference_features = basedir / 'D20141117T234033_IFCB102_fea_v2.csv'
 
     def _pack_df(self, features, roi):
         cols, values = zip(*features)
@@ -69,7 +69,7 @@ class TestFeatures:
         bin = ifcb.open_raw(self.adc_file)
         ROI = 2
 
-        model_config = classify.KerasModelConfig(self.model_path, self.classes_path)
+        model_config = classify.KerasModelConfig(self.model_path, self.classes_path, 'test')
         img = (Image
             .fromarray(bin.images[ROI])
             .convert('RGB')
@@ -80,15 +80,15 @@ class TestFeatures:
         # predict will not normalize the image, this test model used 255.
         img = input_array[np.newaxis, :] / 255
 
-        predictions = classify.predict(model_config, img)
-        assert np.argmax(predictions) == 29
+        predictions_df = classify.predict(model_config, img)
+        assert predictions_df.iloc[0].argmax() == 29
 
     def test_scipt(self):
         runner = CliRunner()
-        result = runner.invoke(cli, [str(self.basedir), str(self.basedir), str(self.model_path), str(self.classes_path)])
-        features_file = self.basedir / 'D20141117T234033_IFCB102_features.csv'
-        classes_file = self.basedir / 'D20141117T234033_IFCB102_class_scores.csv'
-        blob_file = self.basedir / 'D20141117T234033_IFCB102_blobs.zip'
+        result = runner.invoke(cli, [str(self.basedir), str(self.basedir), str(self.model_path), str(self.classes_path), 'test'])
+        features_file = self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'
+        classes_file = self.basedir / 'D20141117T234033_IFCB102_class_v3.h5'
+        blob_file = self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'
 
         assert result.exit_code == 0
         assert filecmp.cmp(self.reference_blobs, blob_file, shallow=True)
@@ -96,6 +96,6 @@ class TestFeatures:
         assert filecmp.cmp(self.reference_classes, classes_file)
 
         if result.exit_code == 0:
-            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_features.csv'))
-            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_class_scores.csv'))
-            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs.zip'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_class_v3.h5'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'))
