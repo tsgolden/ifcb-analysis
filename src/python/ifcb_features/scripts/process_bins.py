@@ -24,7 +24,7 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
 
     blobs_fname = outdir / f'{bin.lid}_blobs_v2.zip'
     features_fname = outdir / f'{bin.lid}_fea_v2.csv'
-    class_fname = outdir / f'{bin.lid}_class_v3.h5'
+    class_fname = outdir / f'{bin.lid}_class.h5'
 
     features_df = None
     roi_number = None
