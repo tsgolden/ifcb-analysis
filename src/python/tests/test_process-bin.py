@@ -20,9 +20,9 @@ class TestFeatures:
     roi_file = basedir / 'D20141117T234033_IFCB102.roi'
     model_path = basedir / 'scwharf-ifcb-xception'
     classes_path = basedir / 'scwharf-class-names.txt'
-    reference_blobs = basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'
-    reference_classes = basedir / 'D20141117T234033_IFCB102_class_v3.h5'
-    reference_features = basedir / 'D20141117T234033_IFCB102_fea_v2.csv'
+    reference_blobs = basedir / 'reference' / 'D20141117T234033_IFCB102_blobs_v2.zip'
+    reference_classes = basedir / 'reference' / 'D20141117T234033_IFCB102_class.h5'
+    reference_features = basedir / 'reference' / 'D20141117T234033_IFCB102_fea_v2.csv'
 
     def _pack_df(self, features, roi):
         cols, values = zip(*features)
@@ -83,19 +83,19 @@ class TestFeatures:
         predictions_df = classify.predict(model_config, img)
         assert predictions_df.iloc[0].argmax() == 29
 
-    def test_scipt(self):
+    def test_script(self):
         runner = CliRunner()
         result = runner.invoke(cli, [str(self.basedir), str(self.basedir), str(self.model_path), str(self.classes_path), 'test'])
         features_file = self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'
-        classes_file = self.basedir / 'D20141117T234033_IFCB102_class_v3.h5'
+        classes_file = self.basedir / 'D20141117T234033_IFCB102_class.h5'
         blob_file = self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'
 
         assert result.exit_code == 0
-        assert filecmp.cmp(self.reference_blobs, blob_file, shallow=True)
         assert filecmp.cmp(self.reference_features, features_file)
         assert filecmp.cmp(self.reference_classes, classes_file)
+        assert self.reference_blobs.stat().st_size == blob_file.stat().st_size
 
         if result.exit_code == 0:
             os.remove(str(self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'))
-            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_class_v3.h5'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_class.h5'))
             os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'))
