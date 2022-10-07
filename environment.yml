@@ -1,0 +1,16 @@
+name: ifcb-analysis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy>=1.16
+  - pandas
+  - pyfftw>=0.13.0
+  - scikit-image
+  - scipy>=1.4
+  - tensorflow
+  - cudatoolkit=11.2
+  - cudnn=8.1.0
+  - pip:
+    - phasepack
+    - git+https://github.com/joefutrelle/pyifcb.git
