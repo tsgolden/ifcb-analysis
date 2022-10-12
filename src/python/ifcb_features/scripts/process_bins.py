@@ -15,7 +15,7 @@ from ifcb_features import classify, compute_features
 from PIL import Image
 
 
-def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfig):
+def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfig, classify_images: bool = True):
     logging.info(f'Processing {file}, saving results to {outdir}')
     if not outdir.exists:
         outdir.mkdir(parents=True)
@@ -75,12 +75,15 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
         logging.info(f'Saving features to {features_fname}')
         features_df.to_csv(features_fname, index=False, float_format='%.6f')
 
-        # Classify images
-        logging.info(f'Classifying images and saving to {class_fname}')
-        predictions_df = classify.predict(model_config, image_stack)
+        if classify_images:
+            # Classify images
+            logging.info(f'Classifying images and saving to {class_fname}')
+            predictions_df = classify.predict(model_config, image_stack)
 
-        # Save predictions to h5
-        predictions2h5(model_config, class_fname, predictions_df, bin.lid, features_df)
+            # Save predictions to h5
+            predictions2h5(model_config, class_fname, predictions_df, bin.lid, features_df)
+        else:
+            logging.info('Classification turned off, skipping')
     else:
         logging.info(f'No features found in {file}. Skipping classification.')
 
@@ -120,19 +123,20 @@ def predictions2h5(model_config: classify.KerasModelConfig, outfile: Path, predi
 
 
 @click.command()
+@click.option('--classify-images/--no-classify-images', default=True)
 @click.argument('input_dir', type=click.Path(exists=True))
 @click.argument('output_dir', type=click.Path(exists=True))
 @click.argument('model_path', type=click.Path(exists=True))
 @click.argument('class_path', type=click.Path(exists=True))
 @click.argument('model_id', type=str)
-def cli(input_dir: Path, output_dir: Path, model_path: Path, class_path: Path, model_id: str):
+def cli(classify_images: bool, input_dir: Path, output_dir: Path, model_path: Path, class_path: Path, model_id: str):
     """Process all files in input_dir and write results to output_dir."""
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
 
     model_config = classify.KerasModelConfig(model_path=model_path, class_path=class_path, model_id=model_id)
     for file in input_dir.glob('*.adc'):
-        process_bin(file, output_dir, model_config)
+        process_bin(file, output_dir, model_config, classify_images)
 
 
 #if __name__ == '__main__':

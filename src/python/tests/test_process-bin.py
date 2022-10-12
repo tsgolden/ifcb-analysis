@@ -99,3 +99,19 @@ class TestFeatures:
             os.remove(str(self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'))
             os.remove(str(self.basedir / 'D20141117T234033_IFCB102_class.h5'))
             os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'))
+
+    def test_script_no_classify(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['--no-classify-images', str(self.basedir), str(self.basedir), str(self.model_path), str(self.classes_path), 'test'])
+        features_file = self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'
+        classes_file = self.basedir / 'D20141117T234033_IFCB102_class.h5'
+        blob_file = self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'
+
+        assert result.exit_code == 0
+        assert filecmp.cmp(self.reference_features, features_file)
+        assert not classes_file.exists()
+        assert self.reference_blobs.stat().st_size == blob_file.stat().st_size
+
+        if result.exit_code == 0:
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'))
