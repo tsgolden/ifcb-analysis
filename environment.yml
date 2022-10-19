@@ -3,14 +3,17 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - python=3.9
   - numpy>=1.16
   - pandas
-  - pyfftw>=0.13.0
   - scikit-image
   - scipy>=1.4
-  - tensorflow
   - cudatoolkit=11.2
   - cudnn=8.1.0
+  - pip
   - pip:
+    - tensorflow==2.6.2
+    - protobuf==3.20.1
+    - pyfftw>=0.13.0
     - phasepack
     - git+https://github.com/joefutrelle/pyifcb.git

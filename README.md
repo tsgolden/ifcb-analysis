@@ -25,7 +25,7 @@ conda env update -f test-environment.yml
 Set environment variable so Tensorflow knows where to look for things:
 
 ```sh
-'LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > .env
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
 ```
 
 ### Run tests
