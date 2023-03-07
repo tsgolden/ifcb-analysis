@@ -23,7 +23,9 @@ class KerasModelConfig:
     def __post_init__(self):
         self.model_path = Path(self.model_path)
         self.class_path = Path(self.class_path)
-        self.model = tf.keras.models.load_model(self.model_path)
+        strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")
+        with strategy.scope():
+            self.model = tf.keras.models.load_model(self.model_path)
         self.class_names = self._read_class_names(self.class_path)
 
     def _read_class_names(self, path: Path) -> dict:
