@@ -15,7 +15,6 @@ from ifcb_features import classify, compute_features
 from PIL import Image
 
 import pandas as pd
-from joblib import Parallel, delayed
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
