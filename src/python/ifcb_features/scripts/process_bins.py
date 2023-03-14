@@ -14,9 +14,17 @@ from ifcb.data.imageio import format_image
 from ifcb_features import classify, compute_features
 from PIL import Image
 
+import pandas as pd
+from joblib import Parallel, delayed
 
-def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfig, classify_images: bool = True):
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
+
+logging.basicConfig(filename='/tmp/process_bins.log', filemode='w', level=logging.DEBUG)
+
+def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfig, extract_images: bool = True, classify_images: bool = True):
     logging.info(f'Processing {file}, saving results to {outdir}')
+    # logging.debug(f'Model ID: {hex(id(model_config.model))}')
     if not outdir.exists:
         outdir.mkdir(parents=True)
 
@@ -26,34 +34,52 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
     features_fname = outdir / f'{bin.lid}_fea_v2.csv'
     class_fname = outdir / f'{bin.lid}_class.h5'
 
-    features_df = None
+    if not extract_images:
+        features_df = pd.read_csv(features_fname)
+    else:
+        features_df = None
+    
     roi_number = None
     num_rois = len(bin.images.keys())
-    image_stack = np.zeros((num_rois, model_config.img_dims[0], model_config.img_dims[1], 3), dtype=np.uint8)
-    try:
-        with ZipFile(blobs_fname, 'w') as blob_zip:
-            for ix, roi_number in enumerate(bin.images):
-                if ix % 100 == 0:
-                    logging.info(f'Processing ROI {roi_number}')
 
-                # Select image
-                image = bin.images[roi_number]
+    if classify_images:
+        image_stack = np.zeros((num_rois, model_config.img_dims[0], model_config.img_dims[1], 3), dtype=np.uint8)
 
-                # Compute features
-                blob_img, features = compute_features(image)
+    with ZipFile(blobs_fname, 'w') as blob_zip:
+        for ix, roi_number in enumerate(bin.images):
+            if ix % 100 == 0:
+                logging.info(f'Processing ROI {roi_number}')
 
-                # Write blob image to zip as bytes.
-                # Include ROI number in filename. e.g. D20141117T234033_IFCB102_2.png
-                image_bytes = blob2bytes(blob_img)
-                blob_zip.writestr(f'{bin.pid.with_target(roi_number)}.png', image_bytes)
+            # Select image
+            image = bin.images[roi_number]
 
-                # Add features row to dataframe
-                # - Copied pyifcb
-                row_df = features2df(features, roi_number)
-                if features_df is None:
-                    features_df = row_df
-                else:
-                    features_df = pd.concat([features_df, row_df])
+            if extract_images:
+                try:
+                    # Compute features
+                    blob_img, features = compute_features(image)
+
+                    # Write blob image to zip as bytes.
+                    # Include ROI number in filename. e.g. D20141117T234033_IFCB102_2.png
+                    image_bytes = blob2bytes(blob_img)
+                    blob_zip.writestr(f'{bin.pid.with_target(roi_number)}.png', image_bytes)
+
+                    # Add features row to dataframe
+                    # - Copied pyifcb
+                    row_df = features2df(features, roi_number)
+                    if features_df is None:
+                        features_df = row_df
+                    else:
+                        features_df = pd.concat([features_df, row_df])
+
+                except Exception as e:
+                    logging.error(f'Failed to extract {file} for ROI {roi_number}')
+                    if os.path.exists(blobs_fname):
+                        os.remove(blobs_fname)
+                    raise e
+            elif ix % 100 == 0:
+                logging.info('Extraction turned off, skipping')
+            
+            if classify_images:
 
                 # Resize image, normalized, and add to stack
                 pil_img = (Image
@@ -63,11 +89,6 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
                 )
                 img = np.array(pil_img) / model_config.norm
                 image_stack[ix, :] = img
-    except Exception as e:
-        logging.error(f'Failed to process {file} for ROI {roi_number}')
-        if os.path.exists(blobs_fname):
-            os.remove(blobs_fname)
-        raise e
 
     # Save features dataframe
     # - Empty features indicates no samples, so remaining steps are skipped
@@ -76,17 +97,17 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
         features_df.to_csv(features_fname, index=False, float_format='%.6f')
 
         if classify_images:
-            # Classify images
             logging.info(f'Classifying images and saving to {class_fname}')
             predictions_df = classify.predict(model_config, image_stack)
 
             # Save predictions to h5
             predictions2h5(model_config, class_fname, predictions_df, bin.lid, features_df)
+
         else:
             logging.info('Classification turned off, skipping')
+
     else:
         logging.info(f'No features found in {file}. Skipping classification.')
-
 
 def blob2bytes(blob_img: np.ndarray) -> bytes:
     """Format blob as image to be written in zip file."""
@@ -123,21 +144,22 @@ def predictions2h5(model_config: classify.KerasModelConfig, outfile: Path, predi
 
 
 @click.command()
+@click.option('--extract-images/--no-extract-images', default=True)
 @click.option('--classify-images/--no-classify-images', default=True)
 @click.argument('input_dir', type=click.Path(exists=True))
 @click.argument('output_dir', type=click.Path(exists=True))
 @click.argument('model_path', type=click.Path(exists=True))
 @click.argument('class_path', type=click.Path(exists=True))
 @click.argument('model_id', type=str)
-def cli(classify_images: bool, input_dir: Path, output_dir: Path, model_path: Path, class_path: Path, model_id: str):
+def cli(extract_images: bool, classify_images: bool, input_dir: Path, output_dir: Path, model_path: Path, class_path: Path, model_id: str):
     """Process all files in input_dir and write results to output_dir."""
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
 
     model_config = classify.KerasModelConfig(model_path=model_path, class_path=class_path, model_id=model_id)
     for file in input_dir.glob('*.adc'):
-        process_bin(file, output_dir, model_config, classify_images)
+        process_bin(file, output_dir, model_config, extract_images, classify_images)
 
 
-#if __name__ == '__main__':
-#    cli()
+if __name__ == '__main__':
+   cli()
