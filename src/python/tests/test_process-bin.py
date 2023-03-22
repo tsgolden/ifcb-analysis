@@ -26,7 +26,7 @@ class TestFeatures:
 
     def _pack_df(self, features, roi):
         cols, values = zip(*features)
-        cols = ('roiNumber',) + cols
+        cols = ('roi_number',) + cols
         values = (roi,) + values
         values = [(value,) for value in values]
         return pd.DataFrame(

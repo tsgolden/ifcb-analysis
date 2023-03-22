@@ -41,7 +41,7 @@ def bin_features(the_bin, out_dir=None, log_callback=None, log_freq=500):
                 bout.writestr(blob_entry_name, image_bytes)
                 # add features row to dataframe
                 cols, values = zip(*features)
-                cols = ('roiNumber',) + cols
+                cols = ('roi_number',) + cols
                 values = (roi_number,) + values
                 values = [(value,) for value in values]
                 row_df = pd.DataFrame({ c: v for c, v in zip(cols, values) },

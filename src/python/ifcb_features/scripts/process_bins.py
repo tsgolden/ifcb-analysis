@@ -117,7 +117,7 @@ def blob2bytes(blob_img: np.ndarray) -> bytes:
 def features2df(features: list, roi_number: int) -> pd.DataFrame:
     """Convert features to dataframe (copy pasta from featureio.py)."""
     cols, values = zip(*features)
-    cols = ('roiNumber',) + cols
+    cols = ('roi_number',) + cols
     values = (roi_number,) + values
     values = [(value,) for value in values]
     return pd.DataFrame({c: v for c, v in zip(cols, values)},
@@ -139,7 +139,7 @@ def predictions2h5(model_config: classify.KerasModelConfig, outfile: Path, predi
         f.create_dataset('output_scores', data=predictions_df.values, compression='gzip', dtype='float16')
 #        f.create_dataset('class_labels', data=np.string_(results['class_labels']), compression='gzip', dtype=h5.string_dtype())
         f.create_dataset('class_labels', data=predictions_df.columns, compression='gzip', dtype=h5.string_dtype())
-        f.create_dataset('roi_numbers', data=features['roiNumber'], compression='gzip', dtype='uint16')
+        f.create_dataset('roi_numbers', data=features['roi_number'], compression='gzip', dtype='uint16')
 
 
 @click.command()
