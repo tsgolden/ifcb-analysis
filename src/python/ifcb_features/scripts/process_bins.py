@@ -48,12 +48,11 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
         for ix, roi_number in enumerate(bin.images):
             if ix % 100 == 0:
                 logging.info(f'Processing ROI {roi_number}')
+            try:
+                # Select image
+                image = bin.images[roi_number]
 
-            # Select image
-            image = bin.images[roi_number]
-
-            if extract_images:
-                try:
+                if extract_images:
                     # Compute features
                     blob_img, features = compute_features(image)
 
@@ -70,24 +69,24 @@ def process_bin(file: Path, outdir: Path, model_config: classify.KerasModelConfi
                     else:
                         features_df = pd.concat([features_df, row_df])
 
-                except Exception as e:
-                    logging.error(f'Failed to extract {file} for ROI {roi_number}')
-                    if os.path.exists(blobs_fname):
-                        os.remove(blobs_fname)
-                    raise e
-            elif ix % 100 == 0:
-                logging.info('Extraction turned off, skipping')
-            
-            if classify_images:
+                elif ix % 100 == 0:
+                    logging.info('Extraction turned off, skipping')
 
-                # Resize image, normalized, and add to stack
-                pil_img = (Image
-                    .fromarray(image)
-                    .convert('RGB')
-                    .resize(model_config.img_dims, Image.BILINEAR)
-                )
-                img = np.array(pil_img) / model_config.norm
-                image_stack[ix, :] = img
+                if classify_images:
+
+                    # Resize image, normalized, and add to stack
+                    pil_img = (Image
+                        .fromarray(image)
+                        .convert('RGB')
+                        .resize(model_config.img_dims, Image.BILINEAR)
+                    )
+                    img = np.array(pil_img) / model_config.norm
+                    image_stack[ix, :] = img
+            except Exception as e:
+                logging.error(f'Failed to extract {file} for ROI {roi_number}')
+                if os.path.exists(blobs_fname):
+                    os.remove(blobs_fname)
+                raise e
 
     # Save features dataframe
     # - Empty features indicates no samples, so remaining steps are skipped
