@@ -115,3 +115,69 @@ class TestFeatures:
         if result.exit_code == 0:
             os.remove(str(self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'))
             os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'))
+
+    def test_script_no_force(self):
+        features_file = self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'
+        classes_file = self.basedir / 'D20141117T234033_IFCB102_class.h5'
+        blob_file = self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'
+
+        features_file.touch()
+        classes_file.touch()
+        blob_file.touch()
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [str(self.basedir), str(self.basedir), str(self.model_path), str(self.classes_path), 'test'])
+
+        assert result.exit_code == 0
+        assert not filecmp.cmp(self.reference_features, features_file)
+        assert not self.reference_classes.stat().st_size == classes_file.stat().st_size
+        assert not self.reference_blobs.stat().st_size == blob_file.stat().st_size
+
+        if result.exit_code == 0:
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_class.h5'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'))
+
+    def test_script_no_force_missing(self):
+        features_file = self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'
+        classes_file = self.basedir / 'D20141117T234033_IFCB102_class.h5'
+        blob_file = self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'
+
+        features_file.touch()
+        classes_file.touch()
+        blob_file.touch()
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [str(self.basedir), str(self.basedir), str(self.model_path), str(self.classes_path), 'test'])
+
+        assert result.exit_code == 0
+        assert not filecmp.cmp(self.reference_features, features_file)
+        assert not self.reference_classes.stat().st_size == classes_file.stat().st_size
+        assert not self.reference_blobs.stat().st_size == blob_file.stat().st_size
+
+        if result.exit_code == 0:
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_class.h5'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'))
+
+    def test_script_force(self):
+        features_file = self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'
+        classes_file = self.basedir / 'D20141117T234033_IFCB102_class.h5'
+        blob_file = self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'
+
+        features_file.touch()
+        classes_file.touch()
+        blob_file.touch()
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ['--force', str(self.basedir), str(self.basedir), str(self.model_path), str(self.classes_path), 'test'])
+
+        assert result.exit_code == 0
+        assert filecmp.cmp(self.reference_features, features_file)
+        assert self.reference_classes.stat().st_size == classes_file.stat().st_size
+        assert self.reference_blobs.stat().st_size == blob_file.stat().st_size
+
+        if result.exit_code == 0:
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_fea_v2.csv'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_class.h5'))
+            os.remove(str(self.basedir / 'D20141117T234033_IFCB102_blobs_v2.zip'))
