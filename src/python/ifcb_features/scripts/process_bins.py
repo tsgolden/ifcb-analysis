@@ -32,7 +32,15 @@ def process_bin(
     logging.info(f'Processing {file}, saving results to {outdir}')
     # logging.debug(f'Model ID: {hex(id(model_config.model))}')
     if not outdir.exists():
-        outdir.mkdir(parents=True)
+        # Due to race conditions when a job is concurrently processing bins
+        # from the same, date mkdir will occasionally fail if the directory 
+        # was created by a different process in the time between when it checks
+        # for the directory's existence and when it actually goes to create the
+        # directory. If this happens, just ignore it.
+        try:
+            outdir.mkdir(parents=True)
+        except FileExistsError:
+            pass
 
     bin = ifcb.open_raw(file)
 
