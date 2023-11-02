@@ -59,7 +59,7 @@ def process_bin(
         num_rois = len(bin.images.keys())
 
         if classify_images:
-            image_stack = np.zeros((num_rois, model_config.img_dims[0], model_config.img_dims[1], 3), dtype=np.uint8)
+            image_stack = np.zeros((num_rois, model_config.img_dims[0], model_config.img_dims[1], 3))
 
         with ZipFile(blobs_fname, 'w') as blob_zip:
             for ix, roi_number in enumerate(bin.images):
