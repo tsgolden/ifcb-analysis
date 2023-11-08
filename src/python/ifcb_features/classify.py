@@ -1,4 +1,4 @@
-
+import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,10 +33,14 @@ class KerasModelConfig:
         
 
     def _read_class_names(self, path: Path) -> dict:
-        # assume comma seperated values in txt file
-        with open(path, 'r') as fin:
-            classes = fin.readlines()
-        return {ix: name for ix, name in enumerate(classes[0].split(','))}
+        if path.suffix == '.txt':
+            # assume comma seperated values in txt file
+            with open(path, 'r') as f:
+                classes = f.readlines()[0].split(',')
+        elif path.suffix == '.json':
+            with open(path, 'r') as f:
+                classes = [x for x in json.load(f) if x.lower() != 'unclassified']
+        return {ix: name for ix, name in enumerate(classes)}
 
 
 def predict(model_config: KerasModelConfig, image_stack: np.ndarray, batch_size=64) -> pd.DataFrame:
