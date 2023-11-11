@@ -10,6 +10,7 @@ dependencies:
   - scipy>=1.4
   - cudatoolkit=11.2
   - cudnn=8.1.0
+  - click
   - pip
   - pip:
     - tensorflow==2.6.2

@@ -4,6 +4,7 @@ import logging
 import os
 from pathlib import Path
 from zipfile import ZipFile
+import gc
 
 import click
 import h5py as h5
@@ -114,6 +115,10 @@ def process_bin(
             if classify_images:
                 logging.info(f'Classifying images and saving to {class_fname}')
                 predictions_df = classify.predict(model_config, image_stack)
+
+                # Since classify.predict (which calls Model.predict) is run in a for loop, memory consumption 
+                # will build up and result in an OOM error, so we excplicitly clear it out after each model run.
+                gc.collect()  
 
                 # Save predictions to h5
                 predictions2h5(model_config, class_fname, predictions_df, bin.lid, features_df)
