@@ -172,3 +172,4 @@ cython_debug/
 
 # Keras model
 src/python/tests/data/scwharf-ifcb-xception/
+src/python/tests/data/phytoClassUCSC/
