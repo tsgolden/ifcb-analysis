@@ -128,6 +128,9 @@ def process_bin(
     else:
         logging.info(f'Output for {bin.pid} already exists, skipping. To override, set --force flag.')
 
+    gc.collect()
+
+
 def blob2bytes(blob_img: np.ndarray) -> bytes:
     """Format blob as image to be written in zip file."""
     image_buf = format_image(blob_img)
