@@ -116,10 +116,6 @@ def process_bin(
                 logging.info(f'Classifying images and saving to {class_fname}')
                 predictions_df = classify.predict(model_config, image_stack)
 
-                # Since classify.predict (which calls Model.predict) is run in a for loop, memory consumption 
-                # will build up and result in an OOM error, so we excplicitly clear it out after each model run.
-                gc.collect()  
-
                 # Save predictions to h5
                 predictions2h5(model_config, class_fname, predictions_df, bin.lid, features_df)
 
@@ -183,6 +179,11 @@ def cli(extract_images: bool, classify_images: bool, force: bool, input_dir: Pat
     model_config = classify.KerasModelConfig(model_path=model_path, class_path=class_path, model_id=model_id)
     for file in input_dir.glob('*.adc'):
         process_bin(file, output_dir, model_config, extract_images, classify_images, force)
+
+        # There seem to be multiple memory leaks in here, both in feature extraction and in classification.
+        # To be safe, we explicitly run garbage collection after every bin.
+        gc.collect()
+
 
 
 if __name__ == '__main__':
